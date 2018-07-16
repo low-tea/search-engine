@@ -46,6 +46,7 @@ class IndexModule:
         f = open(config['DEFAULT']['stop_words_path'])
         words = f.read()
         self.stop_words = set(words.split('\n'))
+        self.conn = sqlite3.connect(config['DEFAULT']['db_path'])
 
     def is_number(self, s):
         try:
