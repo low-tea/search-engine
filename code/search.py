@@ -20,6 +20,9 @@ class SearchEngine:
     config_encoding = ''
 
     N = 0
+    B = 0
+    N = 0
+    AVG_L = 0
 
     def __init__(self, config_path, config_encoding):
         self.config_path = config_path
@@ -91,7 +94,7 @@ class SearchEngine:
 if __name__ == "__main__":
     im = SearchEngine('../config.ini', 'utf-8')
     # test = im.result_by_BM25(u'广东实行生育登记制度')
-    x = im.fetch_from_db(u'广东')
+    x = im.fetch_from_db(u'世界')
     print(x[1])
     print(x[2])
     # print(test[1])
