@@ -67,7 +67,7 @@ class IndexModule:
                     cleaned_dict[i] = cleaned_dict[i] + 1
                 else:
                     cleaned_dict[i] = 1
-            return n, cleaned_dict
+        return n, cleaned_dict
 
     # 文档写入数据库
     def write_postings_to_db(self, db_path):
@@ -79,12 +79,14 @@ class IndexModule:
                      (term TEXT PRIMARY KEY, df INTEGER, docs TEXT)''')
 
         for key, value in self.postings_lists.items():
+
             doc_list = '\n'.join(map(str, value[1]))
             t = (key, value[0], doc_list)
-            c.execute("INSERT INTO postings VALUES (?, ?, ?)", t)
+            print(key,doc_list)
+            # c.execute("INSERT INTO postings VALUES (?, ?, ?)", t)
 
-        conn.commit()
-        conn.close()
+        # conn.commit()
+        # conn.close()
 
     # 文档构建索引
     def construct_postings_lists(self):
