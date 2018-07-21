@@ -7,6 +7,7 @@ import operator
 from os import listdir
 import sys
 import math
+from  datetime import *
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
@@ -76,13 +77,76 @@ class SearchEngine:
                 tf = int(tf)   #词频
                 ld = int(ld)   #文档长度
                 s = (self.K1 * tf * w) / (tf + self.K1 * (1 - self.B + self.B * ld / self.AVG_L))
-                print("---------")
-                print(docid)
-                print(df)
-                print(tf)
-                print(ld)
-                print(s)
-                print("---------")
+                if docid in BM25_scores:
+                    BM25_scores[docid] = BM25_scores[docid] + s
+                else:
+                    BM25_scores[docid] = s
+        BM25_scores = sorted(BM25_scores.items(), key=operator.itemgetter(1))
+        BM25_scores.reverse()
+        if len(BM25_scores) == 0:
+            return 0, []
+        else:
+            return 1, BM25_scores
+
+
+    def result_by_time(self, sentence):
+        seg_list = jieba.lcut(sentence, cut_all=False)
+        n, cleaned_dict = self.clean_list(seg_list)
+        time_scores = {}
+        for term in cleaned_dict.keys():
+            r = self.fetch_from_db(term)
+            if r is None:
+                continue
+            docs = r[2].split('\n')
+            for doc in docs:
+                docid, date_time, tf, ld = doc.split('\t')
+                if docid in time_scores:
+                    continue
+                news_datetime = datetime.strptime(date_time, "%Y-%m-%d %H:%M:%S")
+                now_datetime = datetime.now()
+                td = now_datetime - news_datetime
+                docid = int(docid)
+                td = (timedelta.total_seconds(td) / 3600) # hour
+                time_scores[docid] = td
+        time_scores = sorted(time_scores.items(), key = operator.itemgetter(1))
+        if len(time_scores) == 0:
+            return 0, []
+        else:
+            return 1, time_scores
+
+    def result_by_hot(self, sentence):
+        seg_list = jieba.lcut(sentence, cut_all=False)
+        n, cleaned_dict = self.clean_list(seg_list)
+        hot_scores = {}
+        for term in cleaned_dict.keys():
+            r = self.fetch_from_db(term)
+            if r is None:
+                continue
+            df = r[1]
+            w = math.log2((self.N - df + 0.5) / (df + 0.5))
+            docs = r[2].split('\n')
+            for doc in docs:
+                docid, date_time, tf, ld = doc.split('\t')
+                docid = int(docid)
+                tf = int(tf)
+                ld = int(ld)
+                news_datetime = datetime.strptime(date_time, "%Y-%m-%d %H:%M:%S")
+                now_datetime = datetime.now()
+                td = now_datetime - news_datetime
+                BM25_score = (self.K1 * tf * w) / (tf + self.K1 * (1 - self.B + self.B * ld / self.AVG_L))
+                td = (timedelta.total_seconds(td) / 3600) # hour
+                hot_score = math.log(BM25_score) + 1 / td
+                if docid in hot_scores:
+                    hot_scores[docid] = hot_scores[docid] + hot_score
+                else:
+                    hot_scores[docid] = hot_score
+        hot_scores = sorted(hot_scores.items(), key = operator.itemgetter(1))
+        hot_scores.reverse()
+        if len(hot_scores) == 0:
+            return 0, []
+        else:
+            return 1, hot_scores
+
 
     #从索引中取出包含单词的文章
     def fetch_from_db(self, term):
@@ -90,16 +154,17 @@ class SearchEngine:
         c.execute('SELECT * FROM postings WHERE term=?', (term,))
         return (c.fetchone())
 
+    def search(self, sentence, sort_type = 0):
+        if sort_type == 0:
+            return self.result_by_BM25(sentence)
+        elif sort_type == 1:
+            return self.result_by_time(sentence)
+        elif sort_type == 2:
+            return self.result_by_hot(sentence)
+
 
 if __name__ == "__main__":
-    im = SearchEngine('../config.ini', 'utf-8')
-    # test = im.result_by_BM25(u'广东实行生育登记制度')
-    x = im.fetch_from_db(u'世界')
-    print(x[1])
-    print(x[2])
-    # print(test[1])
-    # print(test[2].split('\n'))
-    #Minimum threshold value
-    # for i in test:
-    #     print(i)
-    # print(test.decode('unicode-escape'))
+    se = SearchEngine('../config.ini', 'utf-8')
+    flag, rs = se.search('石油工业发展', 0)
+    print(rs[:10])
+    print(flag)

@@ -12,6 +12,7 @@ sys.setdefaultencoding('utf-8')
 
 
 class Doc:
+
     docid = 0
     date_time = ''
     tf = 0
@@ -82,11 +83,10 @@ class IndexModule:
 
             doc_list = '\n'.join(map(str, value[1]))
             t = (key, value[0], doc_list)
-            print(key,doc_list)
-            # c.execute("INSERT INTO postings VALUES (?, ?, ?)", t)
+            c.execute("INSERT INTO postings VALUES (?, ?, ?)", t)
 
-        # conn.commit()
-        # conn.close()
+        conn.commit()
+        conn.close()
 
     # 文档构建索引
     def construct_postings_lists(self):
